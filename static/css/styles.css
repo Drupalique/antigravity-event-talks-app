@@ -50,6 +50,61 @@
     --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* Light Theme Variables Override */
+body.light-theme {
+    --bg-page: hsl(220, 20%, 96%);
+    --bg-page-gradient: radial-gradient(circle at 50% 0%, hsl(210, 30%, 92%) 0%, hsl(220, 20%, 96%) 80%);
+    --bg-card: hsla(0, 0%, 100%, 0.7);
+    --bg-card-hover: hsla(0, 0%, 100%, 0.95);
+    --bg-nav: hsla(0, 0%, 100%, 0.75);
+    --bg-input: hsla(0, 0%, 100%, 0.9);
+    --bg-modal: hsla(0, 0%, 100%, 0.98);
+    
+    --border-color: hsla(215, 20%, 80%, 0.6);
+    --border-color-hover: hsla(215, 20%, 65%, 0.9);
+    --border-color-glow: hsla(217, 89%, 61%, 0.15);
+    
+    --text-primary: hsl(222, 47%, 12%);
+    --text-secondary: hsl(215, 25%, 25%);
+    --text-muted: hsl(215, 16%, 45%);
+    
+    --color-feature-bg: hsla(142, 72%, 43%, 0.08);
+    --color-issue-bg: hsla(354, 70%, 54%, 0.08);
+    --color-announcement-bg: hsla(262, 83%, 62%, 0.08);
+    --color-deprecation-bg: hsla(32, 95%, 48%, 0.08);
+    --color-unknown-bg: hsla(200, 30%, 50%, 0.08);
+    
+    --box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Light Theme Specific Element Adjustments */
+body.light-theme .brand-title h1 {
+    background: linear-gradient(120deg, hsl(222, 47%, 12%) 40%, hsl(217, 30%, 30%) 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.light-theme code {
+    background: hsla(217, 20%, 90%, 0.6) !important;
+    border: 1px solid hsla(217, 20%, 80%, 0.5) !important;
+    color: hsl(217, 80%, 30%) !important;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+    background: hsla(215, 20%, 80%, 1);
+}
+
+body.light-theme ::-webkit-scrollbar-thumb:hover {
+    background: hsla(215, 20%, 70%, 1);
+}
+
+/* Theme Toggle Button SVG visibility rules */
+#theme-toggle-btn .theme-icon-sun { display: block; }
+#theme-toggle-btn .theme-icon-moon { display: none; }
+
+body.light-theme #theme-toggle-btn .theme-icon-sun { display: none; }
+body.light-theme #theme-toggle-btn .theme-icon-moon { display: block; }
+
 /* General Resets */
 * {
     box-sizing: border-box;

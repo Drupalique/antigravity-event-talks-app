@@ -18,6 +18,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ~72.25
 const elements = {
     refreshBtn: document.getElementById('refresh-btn'),
     exportCsvBtn: document.getElementById('export-csv-btn'),
+    themeToggleBtn: document.getElementById('theme-toggle-btn'),
     syncStatusText: document.getElementById('sync-status-text'),
     searchInput: document.getElementById('search-input'),
     categoryChipsContainer: document.getElementById('category-chips'),
@@ -49,9 +50,27 @@ const elements = {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initEventListeners();
     fetchReleases();
 });
+
+// Initialize Theme from LocalStorage
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+}
+
+// Toggle Theme & Save Preference
+function toggleTheme() {
+    document.body.classList.toggle('light-theme');
+    const isLight = document.body.classList.contains('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
 
 // Event Listeners Registration
 function initEventListeners() {
@@ -64,6 +83,9 @@ function initEventListeners() {
 
     // Export CSV button
     elements.exportCsvBtn.addEventListener('click', exportToCSV);
+
+    // Theme Toggle button
+    elements.themeToggleBtn.addEventListener('click', toggleTheme);
 
     // Search input (with basic debounce/input listener)
     elements.searchInput.addEventListener('input', (e) => {

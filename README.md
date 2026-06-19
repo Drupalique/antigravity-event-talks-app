@@ -32,6 +32,10 @@ Unlike basic feed parsers that display a single day's updates as a single block 
 * **Card Clipboard Utility:** Each individual update card contains a quick "Copy" button in its footer that immediately copies the parsed plain-text description to your clipboard for quick sharing or documentation elsewhere.
 * **Smart CSV Export:** The application has a top-level "Export CSV" tool. Clicking this exports the **currently active filtered and sorted view** of release notes as a downloadable CSV file (`bigquery_release_notes_YYYY-MM-DD.csv`), capturing columns for Date, UTC Timestamp, Release Type, and Plain Text description.
 
+### 5. Persistent Light/Dark Mode Toggle
+* **Theme Switching:** A round theme toggle button in the header toolbar transitions CSS variables between dark (default) and light themes instantly.
+* **Persistent Preference:** Stores the selection in browser `localStorage`, ensuring the interface loads in the user's preferred layout on subsequent visits.
+
 ---
 
 ## 🛠️ How to Run the App
