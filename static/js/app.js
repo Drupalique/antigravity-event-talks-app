@@ -17,6 +17,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ~72.25
 // DOM Elements
 const elements = {
     refreshBtn: document.getElementById('refresh-btn'),
+    exportCsvBtn: document.getElementById('export-csv-btn'),
     syncStatusText: document.getElementById('sync-status-text'),
     searchInput: document.getElementById('search-input'),
     categoryChipsContainer: document.getElementById('category-chips'),
@@ -60,6 +61,9 @@ function initEventListeners() {
             fetchReleases(true);
         }
     });
+
+    // Export CSV button
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
 
     // Search input (with basic debounce/input listener)
     elements.searchInput.addEventListener('input', (e) => {
@@ -236,11 +240,8 @@ function buildCategoryFilterChips() {
     });
 }
 
-// Render Feed content based on filters
-function renderFeed() {
-    if (state.updates.length === 0) return;
-    
-    // Filter updates
+// Get filtered and sorted updates
+function getFilteredUpdates() {
     let filtered = state.updates.filter(item => {
         // Search filter
         const matchesSearch = !state.filters.search || 
@@ -261,6 +262,15 @@ function renderFeed() {
         const dateB = new Date(b.updated || b.date);
         return state.filters.sortBy === 'newest' ? dateB - dateA : dateA - dateB;
     });
+    
+    return filtered;
+}
+
+// Render Feed content based on filters
+function renderFeed() {
+    if (state.updates.length === 0) return;
+    
+    const filtered = getFilteredUpdates();
     
     // Render Empty State if no match
     if (filtered.length === 0) {
@@ -318,6 +328,14 @@ function renderFeed() {
             openTweetComposer(updateId);
         });
     });
+
+    // Bind click events to copy buttons
+    elements.feedTimeline.querySelectorAll('.copy-card-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const updateId = btn.getAttribute('data-id');
+            copyCardDescription(updateId);
+        });
+    });
 }
 
 // Generate single card HTML
@@ -334,9 +352,18 @@ function renderUpdateCard(upd) {
                 ${upd.html}
             </div>
             <div class="card-footer">
-                <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" class="btn btn-sm" style="font-size: 0.75rem;">
-                    Source
-                </a>
+                <div style="display: flex; gap: 8px;">
+                    <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" class="btn btn-sm" style="font-size: 0.75rem;">
+                        Source
+                    </a>
+                    <button class="btn btn-sm copy-card-btn" data-id="${upd.id}" title="Copy description to clipboard">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                        </svg>
+                        Copy
+                    </button>
+                </div>
                 <button class="btn btn-primary btn-sm tweet-btn" data-id="${upd.id}">
                     <svg viewBox="0 0 24 24" aria-hidden="true" class="r-1nao33i r-4qtqp9 r-yyyyoo r-16y2u6a r-1lk7712 r-dnmxcd r-fpd50l r-18js8t1"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
                     Tweet
@@ -465,6 +492,56 @@ function showToast(message, type = "success") {
     toastTimeout = setTimeout(() => {
         elements.toast.classList.remove('active');
     }, 3000);
+}
+
+// Copy Card Description to Clipboard
+async function copyCardDescription(updateId) {
+    const update = state.updates.find(u => u.id === updateId);
+    if (!update) return;
+    try {
+        await navigator.clipboard.writeText(update.text);
+        showToast("✓ Copied update description!");
+    } catch (err) {
+        console.error("Failed to copy:", err);
+        showToast("✕ Failed to copy text automatically", "danger");
+    }
+}
+
+// Export Filtered Release Notes to CSV
+function exportToCSV() {
+    const filtered = getFilteredUpdates();
+    if (filtered.length === 0) {
+        showToast("✕ No updates available to export", "warning");
+        return;
+    }
+    
+    // Header row
+    const headers = ["Date", "Updated Timestamp", "Type", "Content Description"];
+    
+    // Map to rows
+    const rows = filtered.map(item => {
+        const cleanDate = item.date.replace(/"/g, '""');
+        const cleanUpdated = (item.updated || "").replace(/"/g, '""');
+        const cleanType = item.type.replace(/"/g, '""');
+        const cleanText = item.text.replace(/"/g, '""');
+        
+        return `"${cleanDate}","${cleanUpdated}","${cleanType}","${cleanText}"`;
+    });
+    
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    
+    // Create download link and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bigquery_release_notes_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast("✓ Exported to CSV successfully!");
 }
 
 // Helper Utilities
