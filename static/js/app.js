@@ -109,8 +109,29 @@ function initEventListeners() {
     });
     
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && elements.modalOverlay.classList.contains('active')) {
-            closeModal();
+        if (elements.modalOverlay.classList.contains('active')) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.key === 'Tab') {
+                const modal = elements.modalOverlay.querySelector('.modal-card');
+                const focusable = modal.querySelectorAll('textarea, button:not([disabled])');
+                if (focusable.length > 0) {
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (e.shiftKey) {
+                        if (document.activeElement === first) {
+                            last.focus();
+                            e.preventDefault();
+                        }
+                    } else {
+                        if (document.activeElement === last) {
+                            first.focus();
+                            e.preventDefault();
+                        }
+                    }
+                }
+            }
         }
     });
 
@@ -304,8 +325,30 @@ function renderFeed() {
                 </svg>
                 <h3>No release notes match your search</h3>
                 <p>Try adjusting your keyword filter or switching category tabs.</p>
+                <button id="empty-clear-btn" class="btn btn-primary btn-sm" style="margin-top: 16px;">
+                    Clear Search &amp; Filters
+                </button>
             </div>
         `;
+        
+        const clearBtn = document.getElementById('empty-clear-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                elements.searchInput.value = '';
+                state.filters.search = '';
+                state.filters.category = 'ALL';
+                // Sync chips
+                const chips = elements.categoryChipsContainer.querySelectorAll('.category-chip');
+                chips.forEach(chip => {
+                    if (chip.getAttribute('data-category') === 'ALL') {
+                        chip.classList.add('active');
+                    } else {
+                        chip.classList.remove('active');
+                    }
+                });
+                renderFeed();
+            });
+        }
         return;
     }
     
@@ -358,20 +401,39 @@ function renderFeed() {
             copyCardDescription(updateId);
         });
     });
+
+    // Bind click events to category badges
+    elements.feedTimeline.querySelectorAll('.type-badge').forEach(badge => {
+        badge.addEventListener('click', () => {
+            const category = badge.textContent.trim().toUpperCase();
+            state.filters.category = category;
+            // Sync filter chips
+            const chips = elements.categoryChipsContainer.querySelectorAll('.category-chip');
+            chips.forEach(chip => {
+                if (chip.getAttribute('data-category') === category) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+            renderFeed();
+        });
+    });
 }
 
 // Generate single card HTML
 function renderUpdateCard(upd) {
     const cardTypeClass = `type-${upd.type.toLowerCase()}`;
+    const highlightedHtml = highlightKeyword(upd.html, state.filters.search);
     
     return `
         <article class="update-card ${cardTypeClass}" id="card-${upd.id}">
             <div class="card-header">
-                <span class="type-badge">${upd.type}</span>
+                <span class="type-badge" title="Filter by ${upd.type}">${upd.type}</span>
                 <span class="card-date">${upd.date}</span>
             </div>
             <div class="card-body">
-                ${upd.html}
+                ${highlightedHtml}
             </div>
             <div class="card-footer">
                 <div style="display: flex; gap: 8px;">
@@ -407,12 +469,9 @@ function openTweetComposer(updateId) {
     let draft = `📢 BigQuery ${capitalize(update.type)} (${update.date}):\n`;
     
     // Append the body text (already cleaned of HTML by backend)
-    // If the draft is too long, we will truncate the body segment, keeping the headers and tags
+    // If the draft is too long, we will truncate the body segment at a word boundary
     const maxBodyLen = 200;
-    let bodyText = update.text;
-    if (bodyText.length > maxBodyLen) {
-        bodyText = bodyText.substring(0, maxBodyLen) + '...';
-    }
+    const bodyText = truncateToWordBoundary(update.text, maxBodyLen);
     
     draft += `${bodyText}\n\n#BigQuery #GoogleCloud`;
     
@@ -490,6 +549,7 @@ function openTwitterIntent() {
         return;
     }
     
+    showToast("✓ Redirecting to Twitter/X Composer...");
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank', 'width=550,height=420,toolbar=0,menubar=0,location=0,status=0,scrollbars=yes,resizable=yes');
     closeModal();
@@ -564,6 +624,31 @@ function exportToCSV() {
     document.body.removeChild(link);
     
     showToast("✓ Exported to CSV successfully!");
+}
+
+// Truncate text to the nearest word boundary
+function truncateToWordBoundary(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    let sub = text.substring(0, maxLength);
+    const lastSpace = sub.lastIndexOf(' ');
+    if (lastSpace > 0) {
+        sub = sub.substring(0, lastSpace);
+    }
+    return sub.trim() + '...';
+}
+
+// Safely highlight keyword search matches in HTML content
+function highlightKeyword(html, term) {
+    if (!term) return html;
+    const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const parts = html.split(/(<[^>]*>)/);
+    return parts.map(part => {
+        if (part.startsWith('<') && part.endsWith('>')) {
+            return part; // Leave HTML tags intact
+        }
+        const regex = new RegExp(`(${escapedTerm})`, 'gi');
+        return part.replace(regex, '<mark class="highlight">$1</mark>');
+    }).join('');
 }
 
 // Helper Utilities
